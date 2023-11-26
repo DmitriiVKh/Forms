@@ -1,112 +1,70 @@
-import { useState, useRef, useEffect } from 'react'
+import { useForm } from 'react-hook-form';
+import * as yup from 'yup';
+import { yupResolver } from '@hookform/resolvers/yup';
 import './App.css'
 
 const sendData = (formData) => {
   console.log(formData)
-
 }
 
+const schema = yup.object()
+    .shape({
+  email: yup.string().email('Неверный Email').required('Введите email'),
+  password: yup.string()
+  .matches(/^[A-Za-z0-9]{6,12}$/, 'Пароль 6-12 символов, латинские буквы и цифры')
+  .required('Введите пароль'),
+  repeatPassword: yup.string()
+
+  .oneOf([yup.ref('password'), null], 'Пароли не совпадают')
+  .required('Повторите пароль'),
+});
+
 function App() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [repeatPassword, setRepeatPassword] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: {errors}
+  } = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+      repeatPassword: '',
+    },
+    resolver: yupResolver(schema)
+  });
 
-  const [emailError, setEmailError] = useState(null);
-  const [passwordError, setPasswordError] = useState(null);
-  const [repeatPasswordError, setRepeatPasswordError] = useState(null);
+  const emailError = errors.email?.message;
+  const passwordError = errors.password?.message;
+  const repeatPasswordError = errors.repeatPassword?.message;
 
-  const submitButtonRef = useRef(null);
-  
-  useEffect(() => {
-    if (emailError === null && passwordError === null && repeatPasswordError === null) {
-      if (submitButtonRef.current) {
-        submitButtonRef.current.focus();
-      }
-    }
-  }, [emailError, passwordError, repeatPasswordError]);
-
-  const onSubmit = (event) => {
-    event.preventDefault();
-
-  sendData ({email, password, repeatPassword})
-  }
-
-  const emailValidation = ({target}) => {
-    setEmail(target.value)
-
-    let error = null;
-
-    if(!/^[A-Z0-9._%+-]+@[A-Z0-9-]+.+.[A-Z]{2,4}$/i.test(target.value)) {
-      error = "Неверный Email"
-    }    
-
-    setEmailError(error)
-  }
-
-  const passwordValidation = ({target}) => {
-    setPassword(target.value)
-
-    let error = null;
-
-    if(!/^[A-Za-z0-9]{6,12}$/.test(target.value)) {
-      error = "Пароль 6-12 символов, латинские буквы и цифры"
-    }    
-
-    setPasswordError(error);
-  }
-
-  const repeatPasswordValidation = ({ target }) => {
-    const repeatedPassword = target.value;
-  
-    setRepeatPassword(repeatedPassword);
-  
-    let error = null;
-  
-    if (password !== repeatedPassword) {
-      error = "Пароли не совпадают";
-    }
-  
-    setRepeatPasswordError(error);
-  };
-  
-  return (
+return (
     <>
-      <form onSubmit={onSubmit}>
+      <form onSubmit={handleSubmit(sendData)}>
        {emailError && <div className='error'>{emailError}</div>}
         <input 
           type='email' 
           name='email' 
-          value={email} 
-          placeholder='Введите email' 
-          onChange={emailValidation}
+          {...register('email')}
         />
         {passwordError && <div className='error'>{passwordError}</div>}
         <input 
           type='password' 
           name='password' 
-          value={password} 
-          placeholder='Введите пароль' 
-          onChange={passwordValidation}
+          {...register('password')}
         />
 
         {repeatPasswordError && <div className='error'>{repeatPasswordError}</div>}
         <input 
           type='password' 
           name='repeatPassword' 
-          value={repeatPassword} 
-          placeholder='Повторите пароль' 
-          onChange={repeatPasswordValidation}
+          {...register('repeatPassword')}
         />
       
         <button 
-        ref={submitButtonRef}
         type='submit' 
-        disabled={emailError !== null 
-        || passwordError !== null
-        || repeatPasswordError !== null
-        || !email 
-        || !password 
-        || !repeatPassword
+        disabled={!! emailError 
+          || passwordError
+          || repeatPasswordError
       }
         >Зарегистрироваться</button>
 
